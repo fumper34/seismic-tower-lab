@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D Seismic Tower Simulator — Physics Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#070b14;--card:#0f172a;--panel:#172338;--line:#29384e;--cyan:#00e5c3;--blue:#438cff;--orange:#ff6b35;--text:#edf4ff;--muted:#9aabc2}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 70% 0,#10203b 0,var(--bg) 55%);color:var(--text);font:14px Inter,system-ui,Segoe UI,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#080e1bea;border-bottom:1px solid var(--line);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1,h2,h3,p{margin:0}h1{font-size:19px;letter-spacing:.08em}h2{font-size:16px}h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.sub{color:var(--muted);font-size:12px;margin-top:4px}.brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;border:1px solid var(--cyan);border-radius:10px;display:grid;place-items:center;color:var(--cyan);font-size:20px}
+nav{display:flex;gap:7px;flex-wrap:wrap}button,.filebtn{border:1px solid var(--line);background:#172338;color:var(--text);border-radius:8px;padding:9px 12px;font-weight:650;cursor:pointer;font-size:12px}button:hover,.filebtn:hover{filter:brightness(1.2)}button.active{background:#2458a0;border-color:#438cff}button.primary{background:#087f76;border-color:#00bda8}button.danger{background:#57232b;border-color:#a94455}button:disabled{opacity:.45;cursor:not-allowed}
+main{max-width:1500px;margin:auto;padding:16px;display:grid;grid-template-columns:340px minmax(0,1fr);gap:15px}.sidebar,.maincol{display:flex;flex-direction:column;gap:13px}.card{background:linear-gradient(145deg,#101b30,#0c1526);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 10px 30px #0003}.cardhead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:11px}.muted{color:var(--muted)}.tiny{font-size:11px;color:var(--muted);line-height:1.5}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.rounds{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}.palette{display:grid;gap:7px}.palette button{text-align:left}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.stat{background:#080f1d;border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center}.stat label{display:block;color:var(--muted);font-size:10px;text-transform:uppercase}.stat strong{display:block;font-size:21px;margin:5px 0;font-variant-numeric:tabular-nums}.stat small{font-size:10px;color:var(--muted)}
+#viewport{height:min(66vh,700px);min-height:440px;border:1px solid #34455f;border-radius:14px;overflow:hidden;position:relative;background:#080e1a}#viewport canvas{display:block;width:100%;height:100%}.overlay{position:absolute;top:12px;left:12px;background:#07101ddd;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:11px;line-height:1.65;pointer-events:none}.badge{padding:4px 8px;border-radius:20px;background:#233047;color:var(--muted);font-size:10px}.badge.live{background:#562719;color:#ffad7d}
+input[type=range]{width:100%;accent-color:var(--cyan)}input[type=text],textarea{width:100%;background:#080f1d;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--text);font:inherit}textarea{min-height:90px;resize:vertical}label{font-size:12px;color:#c5d1e2;display:block;margin-bottom:5px}.control{margin:12px 0}.value{float:right;color:var(--cyan);font-variant-numeric:tabular-nums}.timer{font-size:36px;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:.08em;padding:10px;background:#080f1d;border-radius:9px;margin-bottom:9px}
+.tab{display:none;max-width:1200px;margin:18px auto;padding:0 16px}.tab.show{display:block}.workgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.workitem{background:#0b1424;border:1px solid var(--line);border-radius:10px;padding:13px}.workitem h3{color:var(--cyan);margin-bottom:7px}.teachergrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.teachergrid .workitem p{font-size:12px;color:var(--muted);line-height:1.6;margin-top:7px}
+footer{text-align:center;color:#71829b;font-size:10px;padding:18px}
+@media(max-width:950px){main{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}#viewport{height:55vh;min-height:380px}}@media(max-width:600px){.workgrid,.teachergrid{grid-template-columns:1fr}header{position:static}h1{font-size:15px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="logo">▦</div><div><h1>3D SEISMIC TOWER SIMULATOR</h1><div class="sub">Rigid-body structural physics laboratory · inch–second–kilogram units</div></div></div>
+ <nav><button class="active" data-tab="sim">3D Virtual Lab</button><button data-tab="workbook">Workbook & Data Log</button><button data-tab="teacher">Teacher Dashboard</button><button id="printBtn" class="primary">Print Lab Packet</button></nav>
+</header>
+<section id="sim" class="tab show">
+<main>
+<aside class="sidebar">
+ <div class="card">
+  <div class="cardhead"><h3>Build timer</h3><span class="badge">25 min</span></div>
+  <div class="timer" id="clock">25:00</div><div class="row"><button id="timerStart" class="primary">Start</button><button id="timerPause">Pause</button><button id="timerReset">Reset</button></div>
+ </div>
+ <div class="card">
+  <div class="cardhead"><h3>Build mode</h3><span class="badge" id="gravityBadge">GRAVITY OFF</span></div>
+  <label style="display:flex;align-items:center;gap:9px;cursor:pointer">
+   <input id="disableBuildGravity" type="checkbox" checked style="width:18px;height:18px;accent-color:var(--cyan)">
+   Disable gravity while building
+  </label>
+  <p class="tiny" style="margin-top:8px">When enabled, pieces stay where you place them instead of falling while you construct the tower. Starting the earthquake automatically restores normal gravity. Use Return to build mode to reset the structure and make changes.</p>
+  <div class="row" style="margin-top:10px">
+   <button id="returnBuildBtn" class="primary" disabled>Return to build mode</button>
+  </div>
+ </div>
+ <div class="card">
+  <div class="cardhead"><h3>Material inventory</h3><span id="roundLabel" class="badge">Round 1 / 4</span></div>
+  <div class="rounds"><button class="active" data-round="1">R1</button><button data-round="2">R2</button><button data-round="3">R3</button><button data-round="4">R4</button></div>
+  <div class="palette" id="palette"></div>
+  <p class="tiny" style="margin-top:10px">Drag pieces horizontally with the left mouse button. Use Raise / Lower to position layers vertically, or Stack on top for automatic placement. Right mouse orbits the camera.</p>
+  <div class="row" style="margin-top:10px"><button id="rotateBtn">Rotate 90° [R]</button><button id="stackBtn" class="primary">Stack on top</button></div>
+  <div class="row" style="margin-top:7px"><button id="raiseBtn">Raise +0.5 in</button><button id="lowerBtn">Lower −0.5 in</button><button id="deleteBtn" class="danger">Delete</button></div>
+  <p class="tiny" id="inventory" style="margin-top:9px">0 / 16 pieces</p>
+ </div>
+ <div class="card">
+  <div class="cardhead"><h3>Seismic shake table</h3><span class="badge" id="shakeBadge">IDLE</span></div>
+  <div class="control"><label>Frequency <span class="value" id="freqVal">2.5 Hz</span></label><input id="freq" type="range" min=".5" max="8" step=".5" value="2.5"></div>
+  <div class="control"><label>X-axis peak acceleration <span class="value" id="ampVal">0.80 g</span></label><input id="amp" type="range" min="0" max="2" step=".05" value=".8"></div>
+  <div class="control"><label>Z-axis peak acceleration <span class="value" id="ampZVal">0.60 g</span></label><input id="ampZ" type="range" min="0" max="2" step=".05" value=".6"></div>
+  <div class="control"><label>Earthquake duration <span class="value" id="durationVal">20 s</span></label><input id="duration" type="range" min="5" max="60" step="5" value="20"></div>
+  <div class="control">
+   <label>Earthquake motion source</label>
+   <select id="motionMode" style="width:100%;background:#080f1d;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--text)">
+    <option value="synthetic">Synthetic earthquake (default)</option>
+    <option value="record">Uploaded accelerogram (CSV)</option>
+   </select>
+  </div>
+  <div class="control" id="recordUploadArea" style="display:none">
+   <label>Two-axis earthquake CSV</label>
+   <input id="recordFile" type="file" accept=".csv,.txt,text/csv" style="width:100%;font-size:11px">
+   <p class="tiny" style="margin-top:7px">CSV must contain three columns: time_s, ax_g, az_g (or ax_m_s2, az_m_s2). Each row is one sample. Both horizontal components must be in the same file. Headerless files with three numeric columns are also accepted.</p>
+   <div id="recordStatus" class="tiny" style="margin-top:7px">No accelerogram loaded. Synthetic motion will be used until a valid file is loaded.</div>
+  </div>
+  <p class="tiny" id="motionHelp">Synthetic mode creates independent, irregular X and Z acceleration histories. To use measured motion, choose Uploaded accelerogram and load a two-component CSV. Uploaded records are used at their recorded amplitudes.</p>
+  <div class="row" style="margin-top:12px"><button id="shakeBtn" class="danger">Start shaking</button><button id="weightBtn">Add 1 kg load</button></div>
+ </div>
+ <div class="card">
+  <h3 style="margin-bottom:10px">Scene tools</h3><div class="row"><button id="clearBtn" class="danger">Clear scene</button><button id="cameraBtn">Reset camera</button></div>
+  <div class="row" style="margin-top:8px"><button id="saveBtn">Save build JSON</button><button id="loadBtn">Load build JSON</button><input id="loadFile" type="file" accept=".json,application/json" hidden></div>
+ </div>
+</aside>
+<section class="maincol">
+ <div class="stats">
+  <div class="stat"><label>Tower height</label><strong id="heightStat">0.00 in</strong><small id="heightStatus">Target: 4.0 in</small></div>
+  <div class="stat"><label>Structure mass</label><strong id="massStat">0 g</strong><small>Excludes test load</small></div>
+  <div class="stat"><label>Test load</label><strong id="loadStat">0.0 kg</strong><small id="loadStatus">Not placed</small></div>
+  <div class="stat"><label>Load / structure</label><strong id="effStat">0.00</strong><small>Mass ratio</small></div>
+ </div>
+ <div id="viewport"><div class="overlay">LEFT DRAG · Move horizontally<br>RAISE / LOWER · Set layer height<br>STACK ON TOP · Auto-place on support<br>RIGHT DRAG · Orbit camera<br><span style="color:#00e5c3">2-axis earthquake · X + Z</span></div></div>
+ <div class="card"><div class="cardhead"><h3>Simulation telemetry</h3><span class="badge" id="engineBadge">Initializing physics…</span></div><div class="row"><div><div class="tiny">Physics step</div><strong>1 / 120 s</strong></div><div><div class="tiny">Gravity</div><strong>386.09 in/s²</strong></div><div><div class="tiny">Solver</div><strong>Rapier3D</strong></div><div><div class="tiny">Bodies</div><strong id="bodyCount">0</strong></div></div><p class="tiny" style="margin-top:10px">This is a real-time rigid-body approximation, not a certified structural engineering solver. Material strength, fracture, wood grain, and real-world joint tolerances are not modeled. Contact, gravity, friction, inertia, collision response, and angular motion are solved by Rapier.</p></div>
+</section>
+</main>
+</section>
+<section id="workbook" class="tab">
+ <div class="card">
+  <div class="cardhead"><h2>Student virtual lab notebook & data collection</h2><span class="badge">Workbook</span></div>
+  <div class="workgrid" style="margin-bottom:14px"><div><label>Student / team name</label><input id="studentName" type="text" placeholder="Enter student names"></div><div><label>Class period / date</label><input id="period" type="text" placeholder="e.g. Period 3 · Physics 12"></div></div>
+  <div class="workgrid">
+   <div class="workitem"><h3>Round 1: Round dowels</h3><p class="tiny">Observe how cylindrical pieces roll and contact neighboring pieces during horizontal vibration.</p><textarea id="q1" placeholder="Record observations…"></textarea></div>
+   <div class="workitem"><h3>Round 2: Square dowels</h3><p class="tiny">Compare face contact, friction, and cross-hatched stacking with round dowels.</p><textarea id="q2" placeholder="Record observations…"></textarea></div>
+   <div class="workitem"><h3>Round 3: Lincoln logs</h3><p class="tiny">Observe how the notched geometry affects interlocking and resistance to sliding.</p><textarea id="q3" placeholder="Record observations…"></textarea></div>
+   <div class="workitem"><h3>Round 4: Hybrid strategy</h3><p class="tiny">Describe a material placement strategy that improves stability and supports the 1 kg test load.</p><textarea id="q4" placeholder="Record observations…"></textarea></div>
+  </div>
+ </div>
+</section>
+<section id="teacher" class="tab">
+ <div class="card"><div class="cardhead"><h2>Teacher dashboard & lab facilitation</h2><span class="badge">Instructor</span></div>
+ <div class="teachergrid">
+  <div class="workitem"><h3>HS-ETS1-2 · Design solutions</h3><p>Design a solution to a real-world structural problem under material and fastener constraints.</p></div>
+  <div class="workitem"><h3>HS-ETS1-3 · Trade-off analysis</h3><p>Compare materials and construction strategies using observed stability and load response.</p></div>
+  <div class="workitem"><h3>HS-PS2-1 · Newton’s laws</h3><p>Analyze forces, acceleration, friction, normal forces, and center-of-mass motion.</p></div>
+ </div>
+ <div style="margin-top:16px"><button id="demoBtn" class="primary">Load demo tower</button></div>
+ </div>
+</section>
+<footer>Physics learning tool · Use measured physical tests to validate any real-world design.</footer>
+
+<script type="module">
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import {OrbitControls} from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import RAPIER from 'https://esm.sh/@dimforge/rapier3d-compat@0.17.3';
+
+const $=id=>document.getElementById(id);
+const INCH=1, G=386.09, FIXED_DT=1/120, TABLE=8, TARGET=4;
+const SPECS={
+ round:{name:'0.5" Round Dowel',mass:.0058,friction:.15,color:0x438cff,shape:'cylinder',r:.25,h:.5,len:3},
+ square:{name:'0.5" Square Dowel',mass:.0074,friction:.65,color:0x00d8bb,shape:'box',w:3,h:.5,d:.5},
+ log:{name:'Lincoln Log',mass:.0125,friction:.9,color:0xe5b93d,shape:'notched',w:3,h:.5,d:.5},
+ weight:{name:'1.0 kg Test Weight',mass:1,friction:.7,color:0xff6b35,shape:'cylinder',r:1.2,h:1.2}
+};
+const PALETTES={1:['round'],2:['square'],3:['log'],4:['round','square','log']};
+let round=1,items=[],selected=null,shaking=false,shakeTime=0,shakeFreq=2.5,shakeG=.8,shakeGZ=.6,shakeDuration=20,accumulator=0,lastFrame=0;
+let buildGravityDisabled=true,testMode=false,motionMode='synthetic',uploadedRecord=null,activeRecord=null;
+let scene,camera,renderer,controls,tableBody,tableVisual,raycaster,mouse,dragging=false,dragPlane,physics,world,groundCollider;
+let timer=25*60,timerHandle=null;
+const matCache=new Map();
+
+function material(color){if(!matCache.has(color))matCache.set(color,new THREE.MeshStandardMaterial({color,roughness:.62,metalness:.05}));return matCache.get(color);}
+function addMesh(geometry,mat,parent,pos=[0,0,0]){const m=new THREE.Mesh(geometry,mat);m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function makeVisual(type){
+ const s=SPECS[type],group=new THREE.Group(),mat=material(s.color);
+ if(type==='round'){const m=addMesh(new THREE.CylinderGeometry(s.r,s.r,s.len,24),mat,group);m.rotation.z=Math.PI/2;}
+ else if(type==='square')addMesh(new THREE.BoxGeometry(s.w,s.h,s.d),mat,group);
+ else if(type==='log'){
+  // Three visual/collision sections leave a shallow underside recess at each end.
+  addMesh(new THREE.BoxGeometry(2.2,.5,.5),mat,group,[0,0,0]);
+  addMesh(new THREE.BoxGeometry(.4,.35,.5),mat,group,[-1.3,.075,0]);
+  addMesh(new THREE.BoxGeometry(.4,.35,.5),mat,group,[1.3,.075,0]);
+  const dark=new THREE.MeshStandardMaterial({color:0x8b5421,roughness:.9});
+  addMesh(new THREE.BoxGeometry(.4,.012,.51),dark,group,[-1.3,-.10,0]);
+  addMesh(new THREE.BoxGeometry(.4,.012,.51),dark,group,[1.3,-.10,0]);
+ }else addMesh(new THREE.CylinderGeometry(s.r,s.r,s.h,32),mat,group);
+ return group;
+}
+function initScene(){
+ const mount=$('viewport');scene=new THREE.Scene();scene.background=new THREE.Color(0x080e1a);
+ camera=new THREE.PerspectiveCamera(45,mount.clientWidth/mount.clientHeight,.1,200);camera.position.set(9,8,12);
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(mount.clientWidth,mount.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;mount.appendChild(renderer.domElement);
+ controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,2,0);controls.enableDamping=true;controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
+ scene.add(new THREE.HemisphereLight(0xc7dcff,0x283044,2));
+ const light=new THREE.DirectionalLight(0xffffff,2.1);light.position.set(5,12,7);light.castShadow=true;light.shadow.mapSize.set(2048,2048);scene.add(light);
+ tableVisual=new THREE.Group();scene.add(tableVisual);
+ const table=addMesh(new THREE.BoxGeometry(TABLE,.5,TABLE),new THREE.MeshStandardMaterial({color:0x25354c,roughness:.8}),tableVisual,[0,-.25,0]);
+ const grid=new THREE.GridHelper(TABLE,16,0x438cff,0x34445a);grid.position.y=.006;tableVisual.add(grid);
+ const target=new THREE.Mesh(new THREE.PlaneGeometry(TABLE,TABLE),new THREE.MeshBasicMaterial({color:0x00e5c3,transparent:true,opacity:.09,side:THREE.DoubleSide}));target.rotation.x=-Math.PI/2;target.position.y=TARGET;scene.add(target);
+ const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(TABLE,TABLE)),new THREE.LineBasicMaterial({color:0x00e5c3}));edges.rotation.x=-Math.PI/2;edges.position.y=TARGET;scene.add(edges);
+ raycaster=new THREE.Raycaster();mouse=new THREE.Vector2();dragPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+ window.addEventListener('resize',resize);renderer.domElement.addEventListener('pointerdown',pointerDown);renderer.domElement.addEventListener('pointermove',pointerMove);window.addEventListener('pointerup',pointerUp);
+ renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+}
+function resize(){const el=$('viewport');camera.aspect=el.clientWidth/el.clientHeight;camera.updateProjectionMatrix();renderer.setSize(el.clientWidth,el.clientHeight);}
+async function initPhysics(){
+ await RAPIER.init();world=new RAPIER.World({x:0,y:buildGravityDisabled?0:-G,z:0});world.timestep=FIXED_DT;world.integrationParameters.numSolverIterations=12;world.integrationParameters.numInternalPgsIterations=4;
+ tableBody=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0,-.25,0));
+ world.createCollider(RAPIER.ColliderDesc.cuboid(TABLE/2,.25,TABLE/2).setFriction(1.0).setRestitution(.01),tableBody);
+ $('engineBadge').textContent='Rapier3D ready';
+ applyGravityMode();$('engineBadge').classList.add('live');
+}
+function colliderFor(item,body){
+ const s=item.spec,fr=s.friction;
+ const desc=(d)=>world.createCollider(d.setFriction(fr).setRestitution(.01).setDensity(item.mass/(item.type==='round'?Math.PI*s.r*s.r*s.len:item.type==='weight'?Math.PI*s.r*s.r*s.h:s.w*s.h*s.d)),body);
+ if(item.type==='round'){
+  const rot={x:0,y:0,z:Math.SQRT1_2,w:Math.SQRT1_2};
+  desc(RAPIER.ColliderDesc.cylinder(s.len/2,s.r).setRotation(rot));
+ }else if(item.type==='square')desc(RAPIER.ColliderDesc.cuboid(s.w/2,s.h/2,s.d/2));
+ else if(item.type==='weight')desc(RAPIER.ColliderDesc.cylinder(s.h/2,s.r));
+ else{
+  // A compound approximation made from three cuboids creates real open notches at both ends.
+  desc(RAPIER.ColliderDesc.cuboid(1.1,.25,.25));
+  desc(RAPIER.ColliderDesc.cuboid(.2,.175,.25).setTranslation(-1.3,.075,0));
+  desc(RAPIER.ColliderDesc.cuboid(.2,.175,.25).setTranslation(1.3,.075,0));
+ }
+}
+function spawn(type,x=(Math.random()-.5)*.8,z=(Math.random()-.5)*.8,y=2){
+ if(shaking)return;
+ const count=items.filter(i=>i.type!=='weight').length,limit=round<=2?16:30;
+ if(type!=='weight'&&count>=limit){alert(`Round ${round} limit reached (${limit} pieces).`);return;}
+ if(type==='weight'&&items.some(i=>i.type==='weight'))return;
+ const spec=SPECS[type],visual=makeVisual(type);
+ const body=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x,y,z).setCanSleep(false).setLinearDamping(.02).setAngularDamping(.03));
+ const item={id:crypto.randomUUID(),type,spec,body,visual,mass:spec.mass};
+ colliderFor(item,body);scene.add(visual);items.push(item);selected=item;selectVisual();refresh();
+}
+function bodyPosition(item){const p=item.body.translation(),q=item.body.rotation();item.visual.position.set(p.x,p.y,p.z);item.visual.quaternion.set(q.x,q.y,q.z,q.w);}
+function selectVisual(){for(const i of items){i.visual.traverse(o=>{if(o.isMesh){o.material=material(i.spec.color);}});}if(selected)selected.visual.traverse(o=>{if(o.isMesh){o.material=material(i.spec.color);o.material.emissive?.setHex(0x164b48);}});}
+function moveSelectedY(delta){if(!selected||shaking)return;const p=selected.body.translation();selected.body.setTranslation({x:p.x,y:Math.max(.26,p.y+delta),z:p.z},true);selected.body.setLinvel({x:0,y:0,z:0},true);selected.body.setAngvel({x:0,y:0,z:0},true);bodyPosition(selected);}
+function stackSelected(){if(!selected||shaking)return;const ownBox=new THREE.Box3().setFromObject(selected.visual);const p=selected.body.translation();let supportTop=.0;let found=false;for(const other of items){if(other===selected)continue;const b=new THREE.Box3().setFromObject(other.visual);const overlapX=Math.min(ownBox.max.x,b.max.x)-Math.max(ownBox.min.x,b.min.x);const overlapZ=Math.min(ownBox.max.z,b.max.z)-Math.max(ownBox.min.z,b.min.z);if(overlapX>.08&&overlapZ>.08&&b.max.y<=ownBox.max.y+.08&&b.max.y>supportTop){supportTop=b.max.y;found=true;}}if(!found){alert('Move the selected piece above another piece first, or use Raise to position it.');return;}const bottomOffset=ownBox.min.y-p.y;selected.body.setTranslation({x:p.x,y:supportTop-bottomOffset+.015,z:p.z},true);selected.body.setLinvel({x:0,y:0,z:0},true);selected.body.setAngvel({x:0,y:0,z:0},true);bodyPosition(selected);}
+function rotateSelected(){if(!selected||shaking)return;const q=selected.body.rotation();const yaw=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/2);const cur=new THREE.Quaternion(q.x,q.y,q.z,q.w).multiply(yaw);selected.body.setRotation({x:cur.x,y:cur.y,z:cur.z,w:cur.w},true);selected.body.setAngvel({x:0,y:0,z:0},true);bodyPosition(selected);}
+function deleteSelected(){if(!selected)return;world.removeRigidBody(selected.body);scene.remove(selected.visual);items=items.filter(i=>i!==selected);selected=null;refresh();}
+function clearScene(){shaking=false;setShakeUI();for(const i of [...items]){world.removeRigidBody(i.body);scene.remove(i.visual);}items=[];selected=null;refresh();}
+function pointerCoords(e){const r=renderer.domElement.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width*2-1;mouse.y=-((e.clientY-r.top)/r.height)*2+1;}
+function pointerDown(e){
+ if(e.button!==0||shaking)return;pointerCoords(e);raycaster.setFromCamera(mouse,camera);
+ const hits=raycaster.intersectObjects(items.flatMap(i=>i.visual.children),true);
+ if(!hits.length){selected=null;selectVisual();return;}
+ let obj=hits[0].object;while(obj.parent&&!items.some(i=>i.visual===obj))obj=obj.parent;selected=items.find(i=>i.visual===obj);if(!selected)return;
+ dragging=true;controls.enabled=false;const p=selected.body.translation();dragPlane.constant=p.y;selectVisual();renderer.domElement.setPointerCapture?.(e.pointerId);
+}
+function pointerMove(e){if(!dragging||!selected)return;pointerCoords(e);raycaster.setFromCamera(mouse,camera);const hit=new THREE.Vector3();if(raycaster.ray.intersectPlane(dragPlane,hit)){const lim=TABLE/2-.25;const y=selected.body.translation().y;selected.body.setTranslation({x:THREE.MathUtils.clamp(hit.x-tableVisual.position.x,-lim,lim),y,z:THREE.MathUtils.clamp(hit.z-tableVisual.position.z,-lim,lim)},true);selected.body.setLinvel({x:0,y:0,z:0},true);selected.body.setAngvel({x:0,y:0,z:0},true);bodyPosition(selected);}}
+function pointerUp(){dragging=false;controls.enabled=true;}
+// Generate irregular, independent horizontal acceleration histories, then
+// integrate them into displacement records for the kinematic shake table.
+function makeSyntheticComponent(peakG, duration, seed) {
+ const dt=FIXED_DT, n=Math.ceil(duration/dt)+1;
+ let state=seed>>>0;
+ const rand=()=>{state=(1664525*state+1013904223)>>>0;return state/4294967296;};
+ const waves=[];
+ for(let k=0;k<16;k++) waves.push({f:.35+rand()*Math.max(1.2,shakeFreq*1.7),p:rand()*Math.PI*2,a:.25+rand()});
+ const a=new Float64Array(n);
+ for(let i=0;i<n;i++){
+  const t=i*dt, attack=Math.min(1,t/Math.min(2,duration*.18));
+  const decay=Math.min(1,Math.max(0,(duration-t)/Math.min(3,duration*.22)));
+  const envelope=Math.min(attack,decay);
+  let v=0; for(const w of waves) v+=w.a*Math.sin(2*Math.PI*w.f*t+w.p);
+  a[i]=v*envelope;
+ }
+ return accelerationToDisplacement(a,dt,peakG*G);
+}
+function accelerationToDisplacement(acc,dt,targetPeak=null){
+ const n=acc.length, a=Float64Array.from(acc);
+ let mean=0; for(const v of a)mean+=v; mean/=n;
+ for(let i=0;i<n;i++)a[i]-=mean;
+ let peak=0;for(const v of a)peak=Math.max(peak,Math.abs(v));
+ if(targetPeak!==null&&peak>0){const scale=targetPeak/peak;for(let i=0;i<n;i++)a[i]*=scale;}
+ // Integrate acceleration -> velocity, remove residual velocity drift -> displacement.
+ const vel=new Float64Array(n), disp=new Float64Array(n);
+ for(let i=1;i<n;i++)vel[i]=vel[i-1]+.5*(a[i-1]+a[i])*dt;
+ const drift=vel[n-1];
+ for(let i=0;i<n;i++)vel[i]-=drift*(i/(n-1));
+ for(let i=1;i<n;i++)disp[i]=disp[i-1]+.5*(vel[i-1]+vel[i])*dt;
+ const end=disp[n-1];
+ for(let i=0;i<n;i++)disp[i]-=end*(i/(n-1));
+ return disp;
+}
+function prepareEarthquake(){
+ if(motionMode==='record'){
+  if(!uploadedRecord)throw new Error('Load a valid two-axis CSV accelerogram first, or choose Synthetic earthquake.');
+  activeRecord=uploadedRecord;
+  shakeDuration=activeRecord.duration;
+  $('durationVal').textContent=shakeDuration.toFixed(1)+' s (record)';
+ }else{
+  activeRecord={dt:FIXED_DT,duration:shakeDuration,x:makeSyntheticComponent(shakeG,shakeDuration,12345),z:makeSyntheticComponent(shakeGZ,shakeDuration,98765),source:'Synthetic'};
+  $('durationVal').textContent=shakeDuration+' s';
+ }
+}
+function sampleRecord(values,time,dt){
+ const pos=time/dt,i=Math.floor(pos),f=pos-i;
+ if(i<0||i>=values.length-1)return 0;
+ return values[i]*(1-f)+values[i+1]*f;
+}
+function updateShake(dt){
+ shakeTime+=dt;
+ const x=sampleRecord(activeRecord.x,shakeTime,activeRecord.dt);
+ const z=sampleRecord(activeRecord.z,shakeTime,activeRecord.dt);
+ tableBody.setNextKinematicTranslation({x,y:-.25,z});
+ tableVisual.position.set(x,0,z);
+ if(shakeTime>=activeRecord.duration){
+  shaking=false;
+  tableBody.setNextKinematicTranslation({x:0,y:-.25,z:0});
+  tableVisual.position.set(0,0,0);
+  setShakeUI();
+ }
+}
+function parseAccelerogramCSV(text){
+ const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).map(x=>x.trim()).filter(x=>x&&!x.startsWith('#'));
+ if(lines.length<20)throw new Error('The CSV needs at least 20 data rows.');
+ const split=line=>line.split(/[;,\t]/).map(x=>x.trim());
+ const first=split(lines[0]);
+ const hasHeader=first.some(x=>/[a-zA-Z_]/.test(x));
+ let timeCol=0,xCol=1,zCol=2,unit='g',start=0;
+ if(hasHeader){
+  const h=first.map(x=>x.toLowerCase().replace(/[\s()\[\]-]/g,''));
+  timeCol=h.findIndex(x=>['time','times','timesec','timesecs','t'].includes(x));
+  xCol=h.findIndex(x=>['axg','accelxg','accelerationxg','ax'].includes(x));
+  zCol=h.findIndex(x=>['azg','accelzg','accelerationzg','az'].includes(x));
+  const xm=h.findIndex(x=>['axms2','axm/s2','accelxms2','accelerationxms2'].includes(x));
+  const zm=h.findIndex(x=>['azms2','azm/s2','accelzms2','accelerationzms2'].includes(x));
+  if(xm>=0&&zm>=0){xCol=xm;zCol=zm;unit='m/s2';}
+  if(timeCol<0||xCol<0||zCol<0)throw new Error('Headers not recognized. Use time_s, ax_g, az_g or time_s, ax_m_s2, az_m_s2.');
+  start=1;
+ }
+ const rows=[];
+ for(let i=start;i<lines.length;i++){
+  const c=split(lines[i]);
+  const t=Number(c[timeCol]),x=Number(c[xCol]),z=Number(c[zCol]);
+  if(Number.isFinite(t)&&Number.isFinite(x)&&Number.isFinite(z))rows.push([t,x,z]);
+ }
+ if(rows.length<20)throw new Error('Could not find at least 20 valid numeric rows.');
+ for(let i=1;i<rows.length;i++)if(rows[i][0]<=rows[i-1][0])throw new Error('Time values must be strictly increasing.');
+ const sourceDt=(rows[rows.length-1][0]-rows[0][0])/(rows.length-1);
+ if(!(sourceDt>0)||!Number.isFinite(sourceDt))throw new Error('Invalid time interval.');
+ const duration=rows[rows.length-1][0]-rows[0][0];
+ const n=Math.ceil(duration/FIXED_DT)+1;
+ if(n>120000)throw new Error('Record is too long for this browser simulator (maximum about 16 minutes).');
+ const factor=unit==='g'?G: G/9.80665;
+ const ax=new Float64Array(n),az=new Float64Array(n);
+ let j=0;
+ for(let i=0;i<n;i++){
+  const t=rows[0][0]+i*FIXED_DT;
+  while(j<rows.length-2&&rows[j+1][0]<t)j++;
+  const f=Math.max(0,Math.min(1,(t-rows[j][0])/(rows[j+1][0]-rows[j][0])));
+  ax[i]=(rows[j][1]*(1-f)+rows[j+1][1]*f)*factor;
+  az[i]=(rows[j][2]*(1-f)+rows[j+1][2]*f)*factor;
+ }
+ // A short cosine taper limits edge discontinuities before baseline correction.
+ const taper=Math.min(.05,duration/Math.max(2*FIXED_DT,1));
+ for(let i=0;i<n;i++){
+  const t=i*FIXED_DT,fromStart=Math.min(1,t/taper),fromEnd=Math.min(1,(duration-t)/taper);
+  const w=Math.min(1,.5-.5*Math.cos(Math.PI*Math.max(0,Math.min(1,Math.min(fromStart,fromEnd)))));
+  ax[i]*=w;az[i]*=w;
+ }
+ return {dt:FIXED_DT,duration,x:accelerationToDisplacement(ax,FIXED_DT),z:accelerationToDisplacement(az,FIXED_DT),source:'Uploaded accelerogram'};
+}
+async function loadAccelerogram(file){
+ try{
+  const record=parseAccelerogramCSV(await file.text());
+  uploadedRecord=record;
+  motionMode='record';$('motionMode').value='record';
+  $('recordStatus').textContent=`Loaded: ${file.name} · ${record.duration.toFixed(2)} seconds · ${record.x.length} samples at 120 Hz.`;
+  $('recordStatus').style.color='var(--cyan)';
+  $('motionHelp').textContent='Uploaded two-axis accelerogram selected. The recorded acceleration amplitudes are used; the synthetic frequency and peak-g controls do not scale this record.';
+  updateMotionControls();
+ }catch(err){
+  $('recordStatus').textContent='Could not load file: '+err.message;
+  $('recordStatus').style.color='#ff8c8c';
+  alert('Accelerogram import failed: '+err.message);
+ }
+}
+function updateMotionControls(){
+ const isRecord=motionMode==='record';
+ $('recordUploadArea').style.display=isRecord?'block':'none';
+ $('freq').disabled=isRecord;$('amp').disabled=isRecord;$('ampZ').disabled=isRecord;
+ $('freq').style.opacity=isRecord?'.4':'1';$('amp').style.opacity=isRecord?'.4':'1';$('ampZ').style.opacity=isRecord?'.4':'1';
+ if(isRecord&&!uploadedRecord)$('motionHelp').textContent='Choose a CSV containing time and both horizontal acceleration components. Until a valid record is loaded, the simulator cannot start in uploaded-record mode.';
+ else if(!isRecord)$('motionHelp').textContent='Synthetic mode creates independent, irregular X and Z acceleration histories. Both components are different, so the table does not trace a regular circular orbit.';
+}
+function applyGravityMode(){
+ if(!world)return;
+ world.gravity={x:0,y:(buildGravityDisabled&&!testMode)?0:-G,z:0};
+ $('gravityBadge').textContent=(buildGravityDisabled&&!testMode)?'GRAVITY OFF':'GRAVITY ON';
+ $('gravityBadge').classList.toggle('live',!(buildGravityDisabled&&!testMode));
+ $('disableBuildGravity').disabled=testMode;
+ $('returnBuildBtn').disabled=!testMode;
+}
+function enterTestMode(){
+ testMode=true;
+ world.gravity={x:0,y:-G,z:0};
+ applyGravityMode();
+}
+function returnToBuildMode(){
+ shaking=false;
+ shakeTime=0;
+ testMode=false;
+ tableBody.setNextKinematicTranslation({x:0,y:-.25,z:0});
+ tableVisual.position.set(0,0,0);
+ buildGravityDisabled=$('disableBuildGravity').checked;
+ applyGravityMode();
+ setShakeUI();
+}
+function toggleShake(){
+ if(!shaking){
+  try{prepareEarthquake();}catch(err){alert(err.message);return;}
+  enterTestMode();shaking=true;shakeTime=0;
+ }else{shaking=false;tableBody.setNextKinematicTranslation({x:0,y:-.25,z:0});tableVisual.position.set(0,0,0);}
+ setShakeUI();
+}
+function setShakeUI(){$('shakeBadge').textContent=shaking?'SHAKING':'IDLE';$('shakeBadge').classList.toggle('live',shaking);$('shakeBtn').textContent=shaking?'Stop shaking':'Start shaking';}
+function stepPhysics(dt){if(shaking)updateShake(dt);world.step();}
+function animate(now){
+ requestAnimationFrame(animate);if(!lastFrame)lastFrame=now;let frame=Math.min((now-lastFrame)/1000,.05);lastFrame=now;accumulator+=frame;
+ let steps=0;while(accumulator>=FIXED_DT&&steps<12){stepPhysics(FIXED_DT);accumulator-=FIXED_DT;steps++;}
+ controls.update();for(const i of items)bodyPosition(i);renderer.render(scene,camera);
+ if(now%150<18)refreshStats();
+}
+function refresh(){refreshStats();$('bodyCount').textContent=items.length;$('inventory').textContent=`${items.filter(i=>i.type!=='weight').length} / ${round<=2?16:30} structural pieces`;}
+function refreshStats(){
+ let height=0,mass=0,load=0;for(const i of items){const p=i.body.translation();if(i.type==='weight')load+=i.mass;else{mass+=i.mass*1000;const top=p.y+(i.type==='round'?.25:i.type==='weight'?.6:.25);height=Math.max(height,top);}}
+ $('heightStat').textContent=Math.max(0,height).toFixed(2)+' in';$('heightStatus').textContent=height>=TARGET?'4.0 in target reached':'Target: 4.0 in';
+ $('massStat').textContent=mass.toFixed(1)+' g';$('loadStat').textContent=load.toFixed(1)+' kg';$('loadStatus').textContent=load?'Test load in scene':'Not placed';$('effStat').textContent=mass>0?(load*1000/mass).toFixed(2):'0.00';$('bodyCount').textContent=items.length;
+}
+function switchRound(n){round=n;$('roundLabel').textContent=`Round ${n} / 4`;document.querySelectorAll('[data-round]').forEach(b=>b.classList.toggle('active',Number(b.dataset.round)===n));$('palette').innerHTML='';for(const type of PALETTES[n]){const b=document.createElement('button');b.textContent='+ '+SPECS[type].name+(n<3?' · 16/30 max':'');b.onclick=()=>spawn(type);$('palette').append(b);}clearScene();}
+function resetCamera(){camera.position.set(9,8,12);controls.target.set(0,2,0);controls.update();}
+function saveBuild(){const data={version:1,round,items:items.map(i=>({type:i.type,translation:i.body.translation(),rotation:i.body.rotation()}))};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='seismic-tower-build.json';a.click();URL.revokeObjectURL(a.href);}
+function loadBuild(file){const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);if(data.version!==1||!Array.isArray(data.items))throw Error('Unsupported file');clearScene();round=Math.max(1,Math.min(4,data.round||4));switchRoundUIOnly();for(const d of data.items){if(!SPECS[d.type]||d.type==='weight'&&items.some(i=>i.type==='weight'))continue;const p=d.translation||{x:0,y:1,z:0};spawn(d.type,p.x,p.z,p.y);const it=items.at(-1);if(d.rotation)it.body.setRotation(d.rotation,true);}refresh();}catch(e){alert('Could not load build: '+e.message);}};reader.readAsText(file);}
+function switchRoundUIOnly(){ $('roundLabel').textContent=`Round ${round} / 4`;document.querySelectorAll('[data-round]').forEach(b=>b.classList.toggle('active',Number(b.dataset.round)===round));$('palette').innerHTML='';for(const type of PALETTES[round]){const b=document.createElement('button');b.textContent='+ '+SPECS[type].name;b.onclick=()=>spawn(type);$('palette').append(b);}}
+function updateTimer(){const m=Math.floor(timer/60),s=timer%60;$('clock').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+function timerStart(){if(timerHandle)return;timerHandle=setInterval(()=>{if(timer>0){timer--;updateTimer();}else{clearInterval(timerHandle);timerHandle=null;alert('Build phase expired.');}},1000);}
+function timerPause(){clearInterval(timerHandle);timerHandle=null;}
+function demo(){switchRound(2);for(let layer=0;layer<2;layer++)for(let j=0;j<2;j++)spawn('square',(j-.5)*.8,0,0.3+layer*.52);}
+function printPacket(){window.print();}
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('show'));$(b.dataset.tab).classList.add('show');document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));resize();}));
+$('freq').addEventListener('input',e=>{shakeFreq=+e.target.value;$('freqVal').textContent=shakeFreq.toFixed(1)+' Hz';});
+$('amp').addEventListener('input',e=>{shakeG=+e.target.value;$('ampVal').textContent=shakeG.toFixed(2)+' g';});
+$('ampZ').addEventListener('input',e=>{shakeGZ=+e.target.value;$('ampZVal').textContent=shakeGZ.toFixed(2)+' g';});
+$('duration').addEventListener('input',e=>{shakeDuration=+e.target.value;$('durationVal').textContent=shakeDuration+' s';});
+$('motionMode').addEventListener('change',e=>{motionMode=e.target.value;updateMotionControls();});
+$('recordFile').addEventListener('change',e=>{if(e.target.files[0])loadAccelerogram(e.target.files[0]);e.target.value='';});
+$('shakeBtn').onclick=toggleShake;
+$('disableBuildGravity').addEventListener('change',e=>{
+ buildGravityDisabled=e.target.checked;
+ applyGravityMode();
+});
+$('returnBuildBtn').onclick=returnToBuildMode;
+$('weightBtn').onclick=()=>spawn('weight',0,0,Math.max(1,heightEstimate()+1));
+function heightEstimate(){return items.reduce((m,i)=>Math.max(m,i.body.translation().y+.5),0);}
+$('rotateBtn').onclick=rotateSelected;$('stackBtn').onclick=stackSelected;$('raiseBtn').onclick=()=>moveSelectedY(.5);$('lowerBtn').onclick=()=>moveSelectedY(-.5);$('deleteBtn').onclick=deleteSelected;$('clearBtn').onclick=clearScene;$('cameraBtn').onclick=resetCamera;
+$('saveBtn').onclick=saveBuild;$('loadBtn').onclick=()=>$('loadFile').click();$('loadFile').onchange=e=>{if(e.target.files[0])loadBuild(e.target.files[0]);e.target.value='';};
+$('timerStart').onclick=timerStart;$('timerPause').onclick=timerPause;$('timerReset').onclick=()=>{timerPause();timer=1500;updateTimer();};$('printBtn').onclick=printPacket;$('demoBtn').onclick=demo;
+document.querySelectorAll('[data-round]').forEach(b=>b.onclick=()=>switchRound(Number(b.dataset.round)));
+window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;if(e.key.toLowerCase()==='r')rotateSelected();if(e.key==='Delete'||e.key==='Backspace')deleteSelected();});
+initScene();await initPhysics();switchRound(1);updateTimer();updateMotionControls();requestAnimationFrame(animate);
+</script>
+</body>
+</html>
